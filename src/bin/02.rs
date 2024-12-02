@@ -27,7 +27,7 @@ fn main() -> Result<()> {
         list.windows(2).all(|w| w[0] < w[1] && w[1] - w[0] <= 3)
     }
 
-    fn is_report_safe(report: Vec<i32>) -> bool {
+    fn is_report_safe(report: &Vec<i32>) -> bool {
         let mut report_reversed = report.clone();
         report_reversed.reverse();
         let is_sorted =  report.is_sorted() || report_reversed.is_sorted();
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
             return false
         }
         // Know it is sorted at this point, determine monotonic increasing list and determine diff is 1 or 3
-        let increasing_report = if report.first() > report.last() { report_reversed } else {report};
+        let increasing_report = if report.first() > report.last() { report_reversed } else { report.clone() };
         let is_report_safe = is_monotonically_increasing(increasing_report);
         is_report_safe
     }
@@ -44,12 +44,11 @@ fn main() -> Result<()> {
         for line in reader.lines() {
             let line = line?;
             let values: Vec<i32> = line.split(' ').filter_map(|x | i32::from_str(x).ok()).collect();
-            if is_report_safe(values) { acc += 1; }
+            if is_report_safe(&values) { acc += 1; }
         }
         Ok(acc)
     }
 
-    // TODO: Set the expected answer for the test input
     assert_eq!(2, part1(BufReader::new(TEST.as_bytes()))?);
 
     let input_file = BufReader::new(File::open(INPUT_FILE)?);
@@ -58,17 +57,42 @@ fn main() -> Result<()> {
     //endregion
 
     //region Part 2
-    // println!("\n=== Part 2 ===");
-    //
-    // fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    //     Ok(0)
-    // }
-    //
-    // assert_eq!(0, part2(BufReader::new(TEST.as_bytes()))?);
-    //
-    // let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    // let result = time_snippet!(part2(input_file)?);
-    // println!("Result = {}", result);
+    println!("\n=== Part 2 ===");
+
+    fn pop_out_by_index(vec: &Vec<i32>, index: usize) -> Vec<i32> {
+        let mut vec = vec.clone();
+        vec.drain(index..=index);
+        vec
+    }
+
+    fn is_report_safe_with_dampener(report: Vec<i32>) -> bool {
+        if is_report_safe(&report) {
+            return true
+        }
+        // iterate through each element in report, removing it, and checking
+        for i in 0..report.len() {
+            let r = pop_out_by_index(&report, i);
+            if is_report_safe(&r) {
+                return true
+            }
+        }
+        false
+    }
+    fn part2<R: BufRead>(reader: R) -> Result<usize> {
+        let mut acc: usize = 0;
+        for line in reader.lines() {
+            let line = line?;
+            let values: Vec<i32> = line.split(' ').filter_map(|x | i32::from_str(x).ok()).collect();
+            if is_report_safe_with_dampener(values) { acc += 1; }
+        }
+        Ok(acc)
+    }
+
+    assert_eq!(4, part2(BufReader::new(TEST.as_bytes()))?);
+
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part2(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     Ok(())
